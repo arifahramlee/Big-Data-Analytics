@@ -99,7 +99,7 @@ Both implementations produced consistent preprocessing and analytical outputs.
 
 | Approach | Preprocessing Time |
 | -------- | -----------------: |
-| Pandas   |       3.88 seconds |
+| Pandas   |       3.90 seconds |
 | PySpark  |      32.14 seconds |
 
 Pandas performed faster for the dataset used in this project because the data could fit within available memory. PySpark, however, provides a scalable processing framework designed for larger and distributed workloads.
