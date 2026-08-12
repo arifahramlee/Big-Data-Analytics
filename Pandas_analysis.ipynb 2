@@ -1,0 +1,1639 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "provenance": []
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "code",
+      "source": [
+        "from google.colab import files\n",
+        "\n",
+        "uploaded = files.upload()"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 69
+        },
+        "id": "UPb3Hdp-zzM1",
+        "outputId": "25f68886-76a8-4da2-d7bd-419bbe2d3d1b"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "display_data",
+          "data": {
+            "text/plain": [
+              "<IPython.core.display.HTML object>"
+            ],
+            "text/html": [
+              "\n",
+              "     <input type=\"file\" id=\"files-ebb7dc5b-1418-45ce-8e4a-7062265dc7f0\" name=\"files[]\" multiple disabled\n",
+              "        style=\"border:none\" />\n",
+              "     <output id=\"result-ebb7dc5b-1418-45ce-8e4a-7062265dc7f0\">\n",
+              "      Upload widget is only available when the cell has been executed in the\n",
+              "      current browser session. Please rerun this cell to enable.\n",
+              "      </output>\n",
+              "      <script>// Copyright 2017 Google LLC\n",
+              "//\n",
+              "// Licensed under the Apache License, Version 2.0 (the \"License\");\n",
+              "// you may not use this file except in compliance with the License.\n",
+              "// You may obtain a copy of the License at\n",
+              "//\n",
+              "//      http://www.apache.org/licenses/LICENSE-2.0\n",
+              "//\n",
+              "// Unless required by applicable law or agreed to in writing, software\n",
+              "// distributed under the License is distributed on an \"AS IS\" BASIS,\n",
+              "// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n",
+              "// See the License for the specific language governing permissions and\n",
+              "// limitations under the License.\n",
+              "\n",
+              "/**\n",
+              " * @fileoverview Helpers for google.colab Python module.\n",
+              " */\n",
+              "(function(scope) {\n",
+              "function span(text, styleAttributes = {}) {\n",
+              "  const element = document.createElement('span');\n",
+              "  element.textContent = text;\n",
+              "  for (const key of Object.keys(styleAttributes)) {\n",
+              "    element.style[key] = styleAttributes[key];\n",
+              "  }\n",
+              "  return element;\n",
+              "}\n",
+              "\n",
+              "// Max number of bytes which will be uploaded at a time.\n",
+              "const MAX_PAYLOAD_SIZE = 100 * 1024;\n",
+              "\n",
+              "function _uploadFiles(inputId, outputId) {\n",
+              "  const steps = uploadFilesStep(inputId, outputId);\n",
+              "  const outputElement = document.getElementById(outputId);\n",
+              "  // Cache steps on the outputElement to make it available for the next call\n",
+              "  // to uploadFilesContinue from Python.\n",
+              "  outputElement.steps = steps;\n",
+              "\n",
+              "  return _uploadFilesContinue(outputId);\n",
+              "}\n",
+              "\n",
+              "// This is roughly an async generator (not supported in the browser yet),\n",
+              "// where there are multiple asynchronous steps and the Python side is going\n",
+              "// to poll for completion of each step.\n",
+              "// This uses a Promise to block the python side on completion of each step,\n",
+              "// then passes the result of the previous step as the input to the next step.\n",
+              "function _uploadFilesContinue(outputId) {\n",
+              "  const outputElement = document.getElementById(outputId);\n",
+              "  const steps = outputElement.steps;\n",
+              "\n",
+              "  const next = steps.next(outputElement.lastPromiseValue);\n",
+              "  return Promise.resolve(next.value.promise).then((value) => {\n",
+              "    // Cache the last promise value to make it available to the next\n",
+              "    // step of the generator.\n",
+              "    outputElement.lastPromiseValue = value;\n",
+              "    return next.value.response;\n",
+              "  });\n",
+              "}\n",
+              "\n",
+              "/**\n",
+              " * Generator function which is called between each async step of the upload\n",
+              " * process.\n",
+              " * @param {string} inputId Element ID of the input file picker element.\n",
+              " * @param {string} outputId Element ID of the output display.\n",
+              " * @return {!Iterable<!Object>} Iterable of next steps.\n",
+              " */\n",
+              "function* uploadFilesStep(inputId, outputId) {\n",
+              "  const inputElement = document.getElementById(inputId);\n",
+              "  inputElement.disabled = false;\n",
+              "\n",
+              "  const outputElement = document.getElementById(outputId);\n",
+              "  outputElement.innerHTML = '';\n",
+              "\n",
+              "  const pickedPromise = new Promise((resolve) => {\n",
+              "    inputElement.addEventListener('change', (e) => {\n",
+              "      resolve(e.target.files);\n",
+              "    });\n",
+              "  });\n",
+              "\n",
+              "  const cancel = document.createElement('button');\n",
+              "  inputElement.parentElement.appendChild(cancel);\n",
+              "  cancel.textContent = 'Cancel upload';\n",
+              "  const cancelPromise = new Promise((resolve) => {\n",
+              "    cancel.onclick = () => {\n",
+              "      resolve(null);\n",
+              "    };\n",
+              "  });\n",
+              "\n",
+              "  // Wait for the user to pick the files.\n",
+              "  const files = yield {\n",
+              "    promise: Promise.race([pickedPromise, cancelPromise]),\n",
+              "    response: {\n",
+              "      action: 'starting',\n",
+              "    }\n",
+              "  };\n",
+              "\n",
+              "  cancel.remove();\n",
+              "\n",
+              "  // Disable the input element since further picks are not allowed.\n",
+              "  inputElement.disabled = true;\n",
+              "\n",
+              "  if (!files) {\n",
+              "    return {\n",
+              "      response: {\n",
+              "        action: 'complete',\n",
+              "      }\n",
+              "    };\n",
+              "  }\n",
+              "\n",
+              "  for (const file of files) {\n",
+              "    const li = document.createElement('li');\n",
+              "    li.append(span(file.name, {fontWeight: 'bold'}));\n",
+              "    li.append(span(\n",
+              "        `(${file.type || 'n/a'}) - ${file.size} bytes, ` +\n",
+              "        `last modified: ${\n",
+              "            file.lastModifiedDate ? file.lastModifiedDate.toLocaleDateString() :\n",
+              "                                    'n/a'} - `));\n",
+              "    const percent = span('0% done');\n",
+              "    li.appendChild(percent);\n",
+              "\n",
+              "    outputElement.appendChild(li);\n",
+              "\n",
+              "    const fileDataPromise = new Promise((resolve) => {\n",
+              "      const reader = new FileReader();\n",
+              "      reader.onload = (e) => {\n",
+              "        resolve(e.target.result);\n",
+              "      };\n",
+              "      reader.readAsArrayBuffer(file);\n",
+              "    });\n",
+              "    // Wait for the data to be ready.\n",
+              "    let fileData = yield {\n",
+              "      promise: fileDataPromise,\n",
+              "      response: {\n",
+              "        action: 'continue',\n",
+              "      }\n",
+              "    };\n",
+              "\n",
+              "    // Use a chunked sending to avoid message size limits. See b/62115660.\n",
+              "    let position = 0;\n",
+              "    do {\n",
+              "      const length = Math.min(fileData.byteLength - position, MAX_PAYLOAD_SIZE);\n",
+              "      const chunk = new Uint8Array(fileData, position, length);\n",
+              "      position += length;\n",
+              "\n",
+              "      const base64 = btoa(String.fromCharCode.apply(null, chunk));\n",
+              "      yield {\n",
+              "        response: {\n",
+              "          action: 'append',\n",
+              "          file: file.name,\n",
+              "          data: base64,\n",
+              "        },\n",
+              "      };\n",
+              "\n",
+              "      let percentDone = fileData.byteLength === 0 ?\n",
+              "          100 :\n",
+              "          Math.round((position / fileData.byteLength) * 100);\n",
+              "      percent.textContent = `${percentDone}% done`;\n",
+              "\n",
+              "    } while (position < fileData.byteLength);\n",
+              "  }\n",
+              "\n",
+              "  // All done.\n",
+              "  yield {\n",
+              "    response: {\n",
+              "      action: 'complete',\n",
+              "    }\n",
+              "  };\n",
+              "}\n",
+              "\n",
+              "scope.google = scope.google || {};\n",
+              "scope.google.colab = scope.google.colab || {};\n",
+              "scope.google.colab._files = {\n",
+              "  _uploadFiles,\n",
+              "  _uploadFilesContinue,\n",
+              "};\n",
+              "})(self);\n",
+              "</script> "
+            ]
+          },
+          "metadata": {}
+        },
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Saving online_retail_II 2.xlsx to online_retail_II 2 (1).xlsx\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import pandas as pd\n",
+        "\n",
+        "df = pd.read_excel(\"/content/online_retail_II 2.xlsx\")\n",
+        "df.info()"
+      ],
+      "metadata": {
+        "id": "aL_gG-Z2Qao_",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "5f25dd4e-e52f-4d0b-9c0d-88a6c4db2058"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "<class 'pandas.core.frame.DataFrame'>\n",
+            "RangeIndex: 525461 entries, 0 to 525460\n",
+            "Data columns (total 8 columns):\n",
+            " #   Column       Non-Null Count   Dtype         \n",
+            "---  ------       --------------   -----         \n",
+            " 0   Invoice      525461 non-null  object        \n",
+            " 1   StockCode    525461 non-null  object        \n",
+            " 2   Description  522533 non-null  object        \n",
+            " 3   Quantity     525461 non-null  int64         \n",
+            " 4   InvoiceDate  525461 non-null  datetime64[ns]\n",
+            " 5   Price        525461 non-null  float64       \n",
+            " 6   Customer ID  417534 non-null  float64       \n",
+            " 7   Country      525461 non-null  object        \n",
+            "dtypes: datetime64[ns](1), float64(2), int64(1), object(4)\n",
+            "memory usage: 32.1+ MB\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "df.describe()"
+      ],
+      "metadata": {
+        "id": "y3p5-QuJQuGk",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 297
+        },
+        "outputId": "41356cc9-8138-47a2-c205-c5431aa1439d"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "            Quantity                    InvoiceDate          Price  \\\n",
+              "count  525461.000000                         525461  525461.000000   \n",
+              "mean       10.337667  2010-06-28 11:37:36.845017856       4.688834   \n",
+              "min     -9600.000000            2009-12-01 07:45:00  -53594.360000   \n",
+              "25%         1.000000            2010-03-21 12:20:00       1.250000   \n",
+              "50%         3.000000            2010-07-06 09:51:00       2.100000   \n",
+              "75%        10.000000            2010-10-15 12:45:00       4.210000   \n",
+              "max     19152.000000            2010-12-09 20:01:00   25111.090000   \n",
+              "std       107.424110                            NaN     146.126914   \n",
+              "\n",
+              "         Customer ID  \n",
+              "count  417534.000000  \n",
+              "mean    15360.645478  \n",
+              "min     12346.000000  \n",
+              "25%     13983.000000  \n",
+              "50%     15311.000000  \n",
+              "75%     16799.000000  \n",
+              "max     18287.000000  \n",
+              "std      1680.811316  "
+            ],
+            "text/html": [
+              "\n",
+              "  <div id=\"df-1d84c293-c853-4e79-bc78-771a6cb039ca\" class=\"colab-df-container\">\n",
+              "    <div>\n",
+              "<style scoped>\n",
+              "    .dataframe tbody tr th:only-of-type {\n",
+              "        vertical-align: middle;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe tbody tr th {\n",
+              "        vertical-align: top;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe thead th {\n",
+              "        text-align: right;\n",
+              "    }\n",
+              "</style>\n",
+              "<table border=\"1\" class=\"dataframe\">\n",
+              "  <thead>\n",
+              "    <tr style=\"text-align: right;\">\n",
+              "      <th></th>\n",
+              "      <th>Quantity</th>\n",
+              "      <th>InvoiceDate</th>\n",
+              "      <th>Price</th>\n",
+              "      <th>Customer ID</th>\n",
+              "    </tr>\n",
+              "  </thead>\n",
+              "  <tbody>\n",
+              "    <tr>\n",
+              "      <th>count</th>\n",
+              "      <td>525461.000000</td>\n",
+              "      <td>525461</td>\n",
+              "      <td>525461.000000</td>\n",
+              "      <td>417534.000000</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>mean</th>\n",
+              "      <td>10.337667</td>\n",
+              "      <td>2010-06-28 11:37:36.845017856</td>\n",
+              "      <td>4.688834</td>\n",
+              "      <td>15360.645478</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>min</th>\n",
+              "      <td>-9600.000000</td>\n",
+              "      <td>2009-12-01 07:45:00</td>\n",
+              "      <td>-53594.360000</td>\n",
+              "      <td>12346.000000</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>25%</th>\n",
+              "      <td>1.000000</td>\n",
+              "      <td>2010-03-21 12:20:00</td>\n",
+              "      <td>1.250000</td>\n",
+              "      <td>13983.000000</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>50%</th>\n",
+              "      <td>3.000000</td>\n",
+              "      <td>2010-07-06 09:51:00</td>\n",
+              "      <td>2.100000</td>\n",
+              "      <td>15311.000000</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>75%</th>\n",
+              "      <td>10.000000</td>\n",
+              "      <td>2010-10-15 12:45:00</td>\n",
+              "      <td>4.210000</td>\n",
+              "      <td>16799.000000</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>max</th>\n",
+              "      <td>19152.000000</td>\n",
+              "      <td>2010-12-09 20:01:00</td>\n",
+              "      <td>25111.090000</td>\n",
+              "      <td>18287.000000</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>std</th>\n",
+              "      <td>107.424110</td>\n",
+              "      <td>NaN</td>\n",
+              "      <td>146.126914</td>\n",
+              "      <td>1680.811316</td>\n",
+              "    </tr>\n",
+              "  </tbody>\n",
+              "</table>\n",
+              "</div>\n",
+              "    <div class=\"colab-df-buttons\">\n",
+              "\n",
+              "  <div class=\"colab-df-container\">\n",
+              "    <button class=\"colab-df-convert\" onclick=\"convertToInteractive('df-1d84c293-c853-4e79-bc78-771a6cb039ca')\"\n",
+              "            title=\"Convert this dataframe to an interactive table.\"\n",
+              "            style=\"display:none;\">\n",
+              "\n",
+              "  <svg xmlns=\"http://www.w3.org/2000/svg\" height=\"24px\" viewBox=\"0 -960 960 960\">\n",
+              "    <path d=\"M120-120v-720h720v720H120Zm60-500h600v-160H180v160Zm220 220h160v-160H400v160Zm0 220h160v-160H400v160ZM180-400h160v-160H180v160Zm440 0h160v-160H620v160ZM180-180h160v-160H180v160Zm440 0h160v-160H620v160Z\"/>\n",
+              "  </svg>\n",
+              "    </button>\n",
+              "\n",
+              "  <style>\n",
+              "    .colab-df-container {\n",
+              "      display:flex;\n",
+              "      gap: 12px;\n",
+              "    }\n",
+              "\n",
+              "    .colab-df-convert {\n",
+              "      background-color: #E8F0FE;\n",
+              "      border: none;\n",
+              "      border-radius: 50%;\n",
+              "      cursor: pointer;\n",
+              "      display: none;\n",
+              "      fill: #1967D2;\n",
+              "      height: 32px;\n",
+              "      padding: 0 0 0 0;\n",
+              "      width: 32px;\n",
+              "    }\n",
+              "\n",
+              "    .colab-df-convert:hover {\n",
+              "      background-color: #E2EBFA;\n",
+              "      box-shadow: 0px 1px 2px rgba(60, 64, 67, 0.3), 0px 1px 3px 1px rgba(60, 64, 67, 0.15);\n",
+              "      fill: #174EA6;\n",
+              "    }\n",
+              "\n",
+              "    .colab-df-buttons div {\n",
+              "      margin-bottom: 4px;\n",
+              "    }\n",
+              "\n",
+              "    [theme=dark] .colab-df-convert {\n",
+              "      background-color: #3B4455;\n",
+              "      fill: #D2E3FC;\n",
+              "    }\n",
+              "\n",
+              "    [theme=dark] .colab-df-convert:hover {\n",
+              "      background-color: #434B5C;\n",
+              "      box-shadow: 0px 1px 3px 1px rgba(0, 0, 0, 0.15);\n",
+              "      filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.3));\n",
+              "      fill: #FFFFFF;\n",
+              "    }\n",
+              "  </style>\n",
+              "\n",
+              "    <script>\n",
+              "      const buttonEl =\n",
+              "        document.querySelector('#df-1d84c293-c853-4e79-bc78-771a6cb039ca button.colab-df-convert');\n",
+              "      buttonEl.style.display =\n",
+              "        google.colab.kernel.accessAllowed ? 'block' : 'none';\n",
+              "\n",
+              "      async function convertToInteractive(key) {\n",
+              "        const element = document.querySelector('#df-1d84c293-c853-4e79-bc78-771a6cb039ca');\n",
+              "        const dataTable =\n",
+              "          await google.colab.kernel.invokeFunction('convertToInteractive',\n",
+              "                                                    [key], {});\n",
+              "        if (!dataTable) return;\n",
+              "\n",
+              "        const docLinkHtml = 'Like what you see? Visit the ' +\n",
+              "          '<a target=\"_blank\" href=https://colab.research.google.com/notebooks/data_table.ipynb>data table notebook</a>'\n",
+              "          + ' to learn more about interactive tables.';\n",
+              "        element.innerHTML = '';\n",
+              "        dataTable['output_type'] = 'display_data';\n",
+              "        await google.colab.output.renderOutput(dataTable, element);\n",
+              "        const docLink = document.createElement('div');\n",
+              "        docLink.innerHTML = docLinkHtml;\n",
+              "        element.appendChild(docLink);\n",
+              "      }\n",
+              "    </script>\n",
+              "  </div>\n",
+              "\n",
+              "\n",
+              "    </div>\n",
+              "  </div>\n"
+            ],
+            "application/vnd.google.colaboratory.intrinsic+json": {
+              "type": "dataframe",
+              "summary": "{\n  \"name\": \"df\",\n  \"rows\": 8,\n  \"fields\": [\n    {\n      \"column\": \"Quantity\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 185461.102535029,\n        \"min\": -9600.0,\n        \"max\": 525461.0,\n        \"num_unique_values\": 8,\n        \"samples\": [\n          10.337667305470815,\n          10.0,\n          525461.0\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"InvoiceDate\",\n      \"properties\": {\n        \"dtype\": \"date\",\n        \"min\": \"1970-01-01 00:00:00.000525461\",\n        \"max\": \"2010-12-09 20:01:00\",\n        \"num_unique_values\": 7,\n        \"samples\": [\n          \"525461\",\n          \"2010-06-28 11:37:36.845017856\",\n          \"2010-10-15 12:45:00\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"Price\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 188497.50575451538,\n        \"min\": -53594.36,\n        \"max\": 525461.0,\n        \"num_unique_values\": 8,\n        \"samples\": [\n          4.688834478676819,\n          4.21,\n          525461.0\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"Customer ID\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 142975.40434996737,\n        \"min\": 1680.811315745823,\n        \"max\": 417534.0,\n        \"num_unique_values\": 8,\n        \"samples\": [\n          15360.645477973052,\n          16799.0,\n          417534.0\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    }\n  ]\n}"
+            }
+          },
+          "metadata": {},
+          "execution_count": 77
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "df.isnull().sum()"
+      ],
+      "metadata": {
+        "id": "IczH0opqQ8LG",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 331
+        },
+        "outputId": "2d2163b0-4643-42da-a731-9cfc10f293ea"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "Invoice             0\n",
+              "StockCode           0\n",
+              "Description      2928\n",
+              "Quantity            0\n",
+              "InvoiceDate         0\n",
+              "Price               0\n",
+              "Customer ID    107927\n",
+              "Country             0\n",
+              "dtype: int64"
+            ],
+            "text/html": [
+              "<div>\n",
+              "<style scoped>\n",
+              "    .dataframe tbody tr th:only-of-type {\n",
+              "        vertical-align: middle;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe tbody tr th {\n",
+              "        vertical-align: top;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe thead th {\n",
+              "        text-align: right;\n",
+              "    }\n",
+              "</style>\n",
+              "<table border=\"1\" class=\"dataframe\">\n",
+              "  <thead>\n",
+              "    <tr style=\"text-align: right;\">\n",
+              "      <th></th>\n",
+              "      <th>0</th>\n",
+              "    </tr>\n",
+              "  </thead>\n",
+              "  <tbody>\n",
+              "    <tr>\n",
+              "      <th>Invoice</th>\n",
+              "      <td>0</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>StockCode</th>\n",
+              "      <td>0</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>Description</th>\n",
+              "      <td>2928</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>Quantity</th>\n",
+              "      <td>0</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>InvoiceDate</th>\n",
+              "      <td>0</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>Price</th>\n",
+              "      <td>0</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>Customer ID</th>\n",
+              "      <td>107927</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>Country</th>\n",
+              "      <td>0</td>\n",
+              "    </tr>\n",
+              "  </tbody>\n",
+              "</table>\n",
+              "</div><br><label><b>dtype:</b> int64</label>"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 78
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "df.duplicated().sum()"
+      ],
+      "metadata": {
+        "id": "_NCqY91FRI58",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "7bd123cd-c618-4785-e2ac-8a1f6d86ffdf"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "np.int64(6865)"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 79
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "df.shape"
+      ],
+      "metadata": {
+        "id": "AgDWK9aRRR1T",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "4fe70487-41da-4ba4-998d-cf939a5209f7"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "(525461, 8)"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 80
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import time\n",
+        "start_time = time.time()"
+      ],
+      "metadata": {
+        "id": "Na_GvQk_250Y"
+      },
+      "execution_count": 105,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import pandas as pd\n",
+        "\n",
+        "# --------------------------------------------------\n",
+        "# 3. Remove duplicated rows\n",
+        "# --------------------------------------------------\n",
+        "\n",
+        "cleaned_df = df.copy() # Initialize cleaned_df with a copy of df\n",
+        "\n",
+        "rows_before_duplicates = len(cleaned_df)\n",
+        "\n",
+        "cleaned_df = cleaned_df.drop_duplicates()\n",
+        "\n",
+        "rows_after_duplicates = len(cleaned_df)\n",
+        "\n",
+        "print(\"Rows before removing duplicates:\", rows_before_duplicates)\n",
+        "print(\"Rows after removing duplicates:\", rows_after_duplicates)\n",
+        "print(\n",
+        "    \"Duplicates removed:\",\n",
+        "    rows_before_duplicates - rows_after_duplicates\n",
+        ")"
+      ],
+      "metadata": {
+        "id": "K0VH4aYMS5R7",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "76cd9172-1deb-4668-8003-8f1eea742ad8"
+      },
+      "execution_count": 106,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Rows before removing duplicates: 525461\n",
+            "Rows after removing duplicates: 518596\n",
+            "Duplicates removed: 6865\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# --------------------------------------------------\n",
+        "# 4. Convert InvoiceDate into datetime format\n",
+        "# --------------------------------------------------\n",
+        "\n",
+        "cleaned_df[\"InvoiceDate\"] = pd.to_datetime(\n",
+        "    cleaned_df[\"InvoiceDate\"],\n",
+        "    errors=\"coerce\"\n",
+        ")\n",
+        "\n",
+        "print(cleaned_df[\"InvoiceDate\"].dtype)"
+      ],
+      "metadata": {
+        "id": "zxSH8XPgTHg3",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "988b6856-563d-4b2e-8705-904042667441"
+      },
+      "execution_count": 107,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "datetime64[ns]\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Remove records with invalid or missing invoice dates\n",
+        "cleaned_df = cleaned_df.dropna(subset=[\"InvoiceDate\"])\n",
+        "print(cleaned_df[\"InvoiceDate\"].isnull().sum())"
+      ],
+      "metadata": {
+        "id": "CC1-8_OFTJBO",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "eac041cf-cc4c-46e8-f2fb-e5f7d084a17a"
+      },
+      "execution_count": 108,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "0\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# --------------------------------------------------\n",
+        "# 5. Remove missing product descriptions\n",
+        "# --------------------------------------------------\n",
+        "\n",
+        "missing_description_before = cleaned_df[\"Description\"].isnull().sum()\n",
+        "\n",
+        "cleaned_df = cleaned_df.dropna(subset=[\"Description\"])\n",
+        "\n",
+        "print(\n",
+        "    \"Rows with missing Description removed:\",\n",
+        "    missing_description_before\n",
+        ")"
+      ],
+      "metadata": {
+        "id": "dxfjT0bXTO-_",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "2b2e2824-4719-4a14-dfc8-2f00b7639c4c"
+      },
+      "execution_count": 109,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Rows with missing Description removed: 2928\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Remove descriptions containing only spaces\n",
+        "cleaned_df[\"Description\"] = cleaned_df[\"Description\"].astype(str).str.strip()\n",
+        "\n",
+        "cleaned_df = cleaned_df[\n",
+        "    cleaned_df[\"Description\"] != \"\"\n",
+        "]\n",
+        "print(cleaned_df[\"Description\"].isnull().sum())"
+      ],
+      "metadata": {
+        "id": "vWxFFuQYTRxY",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "22f45cb7-0850-4222-9796-ee70ba458dbd"
+      },
+      "execution_count": 110,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "0\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# --------------------------------------------------\n",
+        "# 6. Remove missing Customer ID\n",
+        "# --------------------------------------------------\n",
+        "\n",
+        "missing_customer_before = cleaned_df[\"Customer ID\"].isnull().sum()\n",
+        "\n",
+        "cleaned_df = cleaned_df.dropna(subset=[\"Customer ID\"])\n",
+        "\n",
+        "print(\n",
+        "    \"Rows with missing Customer ID removed:\",\n",
+        "    missing_customer_before\n",
+        ")"
+      ],
+      "metadata": {
+        "id": "9RQ0OeLRTVdl",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "2255b054-f69f-452f-88db-cae04425f592"
+      },
+      "execution_count": 111,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Rows with missing Customer ID removed: 104905\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "cleaned_df[\"Customer ID\"] = (\n",
+        "    cleaned_df[\"Customer ID\"]\n",
+        "    .astype(int)\n",
+        "    .astype(str)\n",
+        ")"
+      ],
+      "metadata": {
+        "id": "xjTMW2sUTdnd"
+      },
+      "execution_count": 112,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# --------------------------------------------------\n",
+        "# 7. Convert Quantity and Price into numeric values\n",
+        "# --------------------------------------------------\n",
+        "\n",
+        "cleaned_df[\"Quantity\"] = pd.to_numeric(\n",
+        "    cleaned_df[\"Quantity\"],\n",
+        "    errors=\"coerce\"\n",
+        ")\n",
+        "\n",
+        "cleaned_df[\"Price\"] = pd.to_numeric(\n",
+        "    cleaned_df[\"Price\"],\n",
+        "    errors=\"coerce\"\n",
+        ")\n",
+        "\n",
+        "# Remove records that could not be converted\n",
+        "cleaned_df = cleaned_df.dropna(\n",
+        "    subset=[\"Quantity\", \"Price\"]\n",
+        ")"
+      ],
+      "metadata": {
+        "id": "M5LQUe3cTrR8"
+      },
+      "execution_count": 113,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# --------------------------------------------------\n",
+        "# 8. Identify cancelled transactions\n",
+        "# --------------------------------------------------\n",
+        "\n",
+        "cleaned_df[\"Invoice\"] = cleaned_df[\"Invoice\"].astype(str)\n",
+        "\n",
+        "cleaned_df[\"Is_Cancelled\"] = (\n",
+        "    cleaned_df[\"Invoice\"]\n",
+        "    .str.upper()\n",
+        "    .str.startswith(\"C\")\n",
+        ")\n",
+        "\n",
+        "print(\"Number of cancelled transactions:\")\n",
+        "print(cleaned_df[\"Is_Cancelled\"].sum())"
+      ],
+      "metadata": {
+        "id": "orawcUhCTsxQ",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "a4e3d121-ab1f-4ea1-941e-06313b0fb862"
+      },
+      "execution_count": 114,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Number of cancelled transactions:\n",
+            "9816\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Keep cancelled transactions in a separate DataFrame\n",
+        "cancelled_df = cleaned_df[\n",
+        "    cleaned_df[\"Is_Cancelled\"] == True\n",
+        "].copy()\n",
+        "\n",
+        "# Keep valid completed transactions\n",
+        "sales_df = cleaned_df[\n",
+        "    cleaned_df[\"Is_Cancelled\"] == False\n",
+        "].copy()"
+      ],
+      "metadata": {
+        "id": "-hRao8HdTwB2"
+      },
+      "execution_count": 115,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Keep valid completed transactions\n",
+        "sales_df = cleaned_df[\n",
+        "    cleaned_df[\"Is_Cancelled\"] == False\n",
+        "].copy()\n",
+        "\n",
+        "# --------------------------------------------------\n",
+        "# 9. Remove invalid prices and quantities\n",
+        "# --------------------------------------------------\n",
+        "\n",
+        "rows_before_invalid_removal = len(sales_df)\n",
+        "\n",
+        "sales_df = sales_df[\n",
+        "    (sales_df[\"Quantity\"] > 0) &\n",
+        "    (sales_df[\"Price\"] > 0)\n",
+        "].copy()\n",
+        "\n",
+        "rows_after_invalid_removal = len(sales_df)\n",
+        "\n",
+        "print(\n",
+        "    \"Invalid completed-sales records removed:\",\n",
+        "    rows_before_invalid_removal - rows_after_invalid_removal\n",
+        ")"
+      ],
+      "metadata": {
+        "id": "qoFE5khWTzka",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "7bc1529d-b150-4aaf-e849-1078f1d11c1e"
+      },
+      "execution_count": 116,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Invalid completed-sales records removed: 31\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# --------------------------------------------------\n",
+        "# 10. Create Revenue column\n",
+        "# --------------------------------------------------\n",
+        "\n",
+        "sales_df[\"Revenue\"] = (\n",
+        "    sales_df[\"Quantity\"] * sales_df[\"Price\"]\n",
+        ")\n",
+        "\n",
+        "print(\n",
+        "    sales_df[\n",
+        "        [\"Quantity\", \"Price\", \"Revenue\"]\n",
+        "    ].head()\n",
+        ")"
+      ],
+      "metadata": {
+        "id": "SErkxRNaT0tE",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "08f50608-997d-414b-beed-dd852b169846"
+      },
+      "execution_count": 117,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "   Quantity  Price  Revenue\n",
+            "0        12   6.95     83.4\n",
+            "1        12   6.75     81.0\n",
+            "2        12   6.75     81.0\n",
+            "3        48   2.10    100.8\n",
+            "4        24   1.25     30.0\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# --------------------------------------------------\n",
+        "# 11. Create date-related columns\n",
+        "# --------------------------------------------------\n",
+        "\n",
+        "sales_df[\"Year\"] = sales_df[\"InvoiceDate\"].dt.year\n",
+        "sales_df[\"Month\"] = sales_df[\"InvoiceDate\"].dt.month\n",
+        "sales_df[\"Month_Name\"] = sales_df[\"InvoiceDate\"].dt.month_name()\n",
+        "sales_df[\"Year_Month\"] = sales_df[\"InvoiceDate\"].dt.to_period(\"M\").astype(str)\n",
+        "sales_df[\"Day\"] = sales_df[\"InvoiceDate\"].dt.day\n",
+        "sales_df[\"Day_Name\"] = sales_df[\"InvoiceDate\"].dt.day_name()\n",
+        "sales_df[\"Hour\"] = sales_df[\"InvoiceDate\"].dt.hour"
+      ],
+      "metadata": {
+        "id": "QFuLOXCoUi91"
+      },
+      "execution_count": 118,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "total_revenue_pandas = sales_df['Revenue'].sum()\n",
+        "print(f\"Total Revenue (Pandas): £{total_revenue_pandas:,.2f}\")"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "b_mZEUxUHy-B",
+        "outputId": "24b6f6dd-2703-4333-b894-c9336c73b306"
+      },
+      "execution_count": 119,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Total Revenue (Pandas): £8,798,233.74\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "end_time = time.time()\n",
+        "preprocessing_time = end_time - start_time\n",
+        "print(f\"Pandas preprocessing time: {preprocessing_time:.2f} seconds\")"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "uJeUVA5L3OAU",
+        "outputId": "3f7e653c-fa53-44e9-a665-ee8cbb39a38d"
+      },
+      "execution_count": 120,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Pandas preprocessing time: 3.90 seconds\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# --------------------------------------------------\n",
+        "# 12. Final data-quality checks\n",
+        "# --------------------------------------------------\n",
+        "\n",
+        "print(\"Cleaned sales dataset shape:\")\n",
+        "print(sales_df.shape)\n",
+        "\n",
+        "print(\"\\nRemaining missing values:\")\n",
+        "print(sales_df.isnull().sum())\n",
+        "\n",
+        "print(\"\\nRemaining duplicate rows:\")\n",
+        "print(sales_df.duplicated().sum())\n",
+        "\n",
+        "print(\"\\nData types:\")\n",
+        "print(sales_df.dtypes)\n",
+        "\n",
+        "print(\"\\nSummary statistics:\")\n",
+        "print(\n",
+        "    sales_df[\n",
+        "        [\"Quantity\", \"Price\", \"Revenue\"]\n",
+        "    ].describe()\n",
+        ")"
+      ],
+      "metadata": {
+        "id": "q7djcFM0Uljt",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "834e58f8-63d3-4c2b-c997-2e59cbf7ccb6"
+      },
+      "execution_count": 121,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Cleaned sales dataset shape:\n",
+            "(400916, 17)\n",
+            "\n",
+            "Remaining missing values:\n",
+            "Invoice         0\n",
+            "StockCode       0\n",
+            "Description     0\n",
+            "Quantity        0\n",
+            "InvoiceDate     0\n",
+            "Price           0\n",
+            "Customer ID     0\n",
+            "Country         0\n",
+            "Is_Cancelled    0\n",
+            "Revenue         0\n",
+            "Year            0\n",
+            "Month           0\n",
+            "Month_Name      0\n",
+            "Year_Month      0\n",
+            "Day             0\n",
+            "Day_Name        0\n",
+            "Hour            0\n",
+            "dtype: int64\n",
+            "\n",
+            "Remaining duplicate rows:\n",
+            "0\n",
+            "\n",
+            "Data types:\n",
+            "Invoice                 object\n",
+            "StockCode               object\n",
+            "Description             object\n",
+            "Quantity                 int64\n",
+            "InvoiceDate     datetime64[ns]\n",
+            "Price                  float64\n",
+            "Customer ID             object\n",
+            "Country                 object\n",
+            "Is_Cancelled              bool\n",
+            "Revenue                float64\n",
+            "Year                     int32\n",
+            "Month                    int32\n",
+            "Month_Name              object\n",
+            "Year_Month              object\n",
+            "Day                      int32\n",
+            "Day_Name                object\n",
+            "Hour                     int32\n",
+            "dtype: object\n",
+            "\n",
+            "Summary statistics:\n",
+            "            Quantity          Price        Revenue\n",
+            "count  400916.000000  400916.000000  400916.000000\n",
+            "mean       13.767418       3.305826      21.945330\n",
+            "std        97.638385      35.047719      77.758075\n",
+            "min         1.000000       0.001000       0.001000\n",
+            "25%         2.000000       1.250000       5.000000\n",
+            "50%         5.000000       1.950000      12.500000\n",
+            "75%        12.000000       3.750000      19.500000\n",
+            "max     19152.000000   10953.500000   15818.400000\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "sales_df.head(10)"
+      ],
+      "metadata": {
+        "id": "831u7aUAUq5H",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 719
+        },
+        "outputId": "1bf5573d-c8a7-4567-a424-e0aa7b8a66af"
+      },
+      "execution_count": 122,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "  Invoice StockCode                          Description  Quantity  \\\n",
+              "0  489434     85048  15CM CHRISTMAS GLASS BALL 20 LIGHTS        12   \n",
+              "1  489434    79323P                   PINK CHERRY LIGHTS        12   \n",
+              "2  489434    79323W                  WHITE CHERRY LIGHTS        12   \n",
+              "3  489434     22041          RECORD FRAME 7\" SINGLE SIZE        48   \n",
+              "4  489434     21232       STRAWBERRY CERAMIC TRINKET BOX        24   \n",
+              "5  489434     22064            PINK DOUGHNUT TRINKET POT        24   \n",
+              "6  489434     21871                  SAVE THE PLANET MUG        24   \n",
+              "7  489434     21523   FANCY FONT HOME SWEET HOME DOORMAT        10   \n",
+              "8  489435     22350                             CAT BOWL        12   \n",
+              "9  489435     22349       DOG BOWL , CHASING BALL DESIGN        12   \n",
+              "\n",
+              "          InvoiceDate  Price Customer ID         Country  Is_Cancelled  \\\n",
+              "0 2009-12-01 07:45:00   6.95       13085  United Kingdom         False   \n",
+              "1 2009-12-01 07:45:00   6.75       13085  United Kingdom         False   \n",
+              "2 2009-12-01 07:45:00   6.75       13085  United Kingdom         False   \n",
+              "3 2009-12-01 07:45:00   2.10       13085  United Kingdom         False   \n",
+              "4 2009-12-01 07:45:00   1.25       13085  United Kingdom         False   \n",
+              "5 2009-12-01 07:45:00   1.65       13085  United Kingdom         False   \n",
+              "6 2009-12-01 07:45:00   1.25       13085  United Kingdom         False   \n",
+              "7 2009-12-01 07:45:00   5.95       13085  United Kingdom         False   \n",
+              "8 2009-12-01 07:46:00   2.55       13085  United Kingdom         False   \n",
+              "9 2009-12-01 07:46:00   3.75       13085  United Kingdom         False   \n",
+              "\n",
+              "   Revenue  Year  Month Month_Name Year_Month  Day Day_Name  Hour  \n",
+              "0     83.4  2009     12   December    2009-12    1  Tuesday     7  \n",
+              "1     81.0  2009     12   December    2009-12    1  Tuesday     7  \n",
+              "2     81.0  2009     12   December    2009-12    1  Tuesday     7  \n",
+              "3    100.8  2009     12   December    2009-12    1  Tuesday     7  \n",
+              "4     30.0  2009     12   December    2009-12    1  Tuesday     7  \n",
+              "5     39.6  2009     12   December    2009-12    1  Tuesday     7  \n",
+              "6     30.0  2009     12   December    2009-12    1  Tuesday     7  \n",
+              "7     59.5  2009     12   December    2009-12    1  Tuesday     7  \n",
+              "8     30.6  2009     12   December    2009-12    1  Tuesday     7  \n",
+              "9     45.0  2009     12   December    2009-12    1  Tuesday     7  "
+            ],
+            "text/html": [
+              "\n",
+              "  <div id=\"df-e5dd5fc7-6092-455f-be52-7dd4303d9355\" class=\"colab-df-container\">\n",
+              "    <div>\n",
+              "<style scoped>\n",
+              "    .dataframe tbody tr th:only-of-type {\n",
+              "        vertical-align: middle;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe tbody tr th {\n",
+              "        vertical-align: top;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe thead th {\n",
+              "        text-align: right;\n",
+              "    }\n",
+              "</style>\n",
+              "<table border=\"1\" class=\"dataframe\">\n",
+              "  <thead>\n",
+              "    <tr style=\"text-align: right;\">\n",
+              "      <th></th>\n",
+              "      <th>Invoice</th>\n",
+              "      <th>StockCode</th>\n",
+              "      <th>Description</th>\n",
+              "      <th>Quantity</th>\n",
+              "      <th>InvoiceDate</th>\n",
+              "      <th>Price</th>\n",
+              "      <th>Customer ID</th>\n",
+              "      <th>Country</th>\n",
+              "      <th>Is_Cancelled</th>\n",
+              "      <th>Revenue</th>\n",
+              "      <th>Year</th>\n",
+              "      <th>Month</th>\n",
+              "      <th>Month_Name</th>\n",
+              "      <th>Year_Month</th>\n",
+              "      <th>Day</th>\n",
+              "      <th>Day_Name</th>\n",
+              "      <th>Hour</th>\n",
+              "    </tr>\n",
+              "  </thead>\n",
+              "  <tbody>\n",
+              "    <tr>\n",
+              "      <th>0</th>\n",
+              "      <td>489434</td>\n",
+              "      <td>85048</td>\n",
+              "      <td>15CM CHRISTMAS GLASS BALL 20 LIGHTS</td>\n",
+              "      <td>12</td>\n",
+              "      <td>2009-12-01 07:45:00</td>\n",
+              "      <td>6.95</td>\n",
+              "      <td>13085</td>\n",
+              "      <td>United Kingdom</td>\n",
+              "      <td>False</td>\n",
+              "      <td>83.4</td>\n",
+              "      <td>2009</td>\n",
+              "      <td>12</td>\n",
+              "      <td>December</td>\n",
+              "      <td>2009-12</td>\n",
+              "      <td>1</td>\n",
+              "      <td>Tuesday</td>\n",
+              "      <td>7</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>1</th>\n",
+              "      <td>489434</td>\n",
+              "      <td>79323P</td>\n",
+              "      <td>PINK CHERRY LIGHTS</td>\n",
+              "      <td>12</td>\n",
+              "      <td>2009-12-01 07:45:00</td>\n",
+              "      <td>6.75</td>\n",
+              "      <td>13085</td>\n",
+              "      <td>United Kingdom</td>\n",
+              "      <td>False</td>\n",
+              "      <td>81.0</td>\n",
+              "      <td>2009</td>\n",
+              "      <td>12</td>\n",
+              "      <td>December</td>\n",
+              "      <td>2009-12</td>\n",
+              "      <td>1</td>\n",
+              "      <td>Tuesday</td>\n",
+              "      <td>7</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>2</th>\n",
+              "      <td>489434</td>\n",
+              "      <td>79323W</td>\n",
+              "      <td>WHITE CHERRY LIGHTS</td>\n",
+              "      <td>12</td>\n",
+              "      <td>2009-12-01 07:45:00</td>\n",
+              "      <td>6.75</td>\n",
+              "      <td>13085</td>\n",
+              "      <td>United Kingdom</td>\n",
+              "      <td>False</td>\n",
+              "      <td>81.0</td>\n",
+              "      <td>2009</td>\n",
+              "      <td>12</td>\n",
+              "      <td>December</td>\n",
+              "      <td>2009-12</td>\n",
+              "      <td>1</td>\n",
+              "      <td>Tuesday</td>\n",
+              "      <td>7</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>3</th>\n",
+              "      <td>489434</td>\n",
+              "      <td>22041</td>\n",
+              "      <td>RECORD FRAME 7\" SINGLE SIZE</td>\n",
+              "      <td>48</td>\n",
+              "      <td>2009-12-01 07:45:00</td>\n",
+              "      <td>2.10</td>\n",
+              "      <td>13085</td>\n",
+              "      <td>United Kingdom</td>\n",
+              "      <td>False</td>\n",
+              "      <td>100.8</td>\n",
+              "      <td>2009</td>\n",
+              "      <td>12</td>\n",
+              "      <td>December</td>\n",
+              "      <td>2009-12</td>\n",
+              "      <td>1</td>\n",
+              "      <td>Tuesday</td>\n",
+              "      <td>7</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>4</th>\n",
+              "      <td>489434</td>\n",
+              "      <td>21232</td>\n",
+              "      <td>STRAWBERRY CERAMIC TRINKET BOX</td>\n",
+              "      <td>24</td>\n",
+              "      <td>2009-12-01 07:45:00</td>\n",
+              "      <td>1.25</td>\n",
+              "      <td>13085</td>\n",
+              "      <td>United Kingdom</td>\n",
+              "      <td>False</td>\n",
+              "      <td>30.0</td>\n",
+              "      <td>2009</td>\n",
+              "      <td>12</td>\n",
+              "      <td>December</td>\n",
+              "      <td>2009-12</td>\n",
+              "      <td>1</td>\n",
+              "      <td>Tuesday</td>\n",
+              "      <td>7</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>5</th>\n",
+              "      <td>489434</td>\n",
+              "      <td>22064</td>\n",
+              "      <td>PINK DOUGHNUT TRINKET POT</td>\n",
+              "      <td>24</td>\n",
+              "      <td>2009-12-01 07:45:00</td>\n",
+              "      <td>1.65</td>\n",
+              "      <td>13085</td>\n",
+              "      <td>United Kingdom</td>\n",
+              "      <td>False</td>\n",
+              "      <td>39.6</td>\n",
+              "      <td>2009</td>\n",
+              "      <td>12</td>\n",
+              "      <td>December</td>\n",
+              "      <td>2009-12</td>\n",
+              "      <td>1</td>\n",
+              "      <td>Tuesday</td>\n",
+              "      <td>7</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>6</th>\n",
+              "      <td>489434</td>\n",
+              "      <td>21871</td>\n",
+              "      <td>SAVE THE PLANET MUG</td>\n",
+              "      <td>24</td>\n",
+              "      <td>2009-12-01 07:45:00</td>\n",
+              "      <td>1.25</td>\n",
+              "      <td>13085</td>\n",
+              "      <td>United Kingdom</td>\n",
+              "      <td>False</td>\n",
+              "      <td>30.0</td>\n",
+              "      <td>2009</td>\n",
+              "      <td>12</td>\n",
+              "      <td>December</td>\n",
+              "      <td>2009-12</td>\n",
+              "      <td>1</td>\n",
+              "      <td>Tuesday</td>\n",
+              "      <td>7</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>7</th>\n",
+              "      <td>489434</td>\n",
+              "      <td>21523</td>\n",
+              "      <td>FANCY FONT HOME SWEET HOME DOORMAT</td>\n",
+              "      <td>10</td>\n",
+              "      <td>2009-12-01 07:45:00</td>\n",
+              "      <td>5.95</td>\n",
+              "      <td>13085</td>\n",
+              "      <td>United Kingdom</td>\n",
+              "      <td>False</td>\n",
+              "      <td>59.5</td>\n",
+              "      <td>2009</td>\n",
+              "      <td>12</td>\n",
+              "      <td>December</td>\n",
+              "      <td>2009-12</td>\n",
+              "      <td>1</td>\n",
+              "      <td>Tuesday</td>\n",
+              "      <td>7</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>8</th>\n",
+              "      <td>489435</td>\n",
+              "      <td>22350</td>\n",
+              "      <td>CAT BOWL</td>\n",
+              "      <td>12</td>\n",
+              "      <td>2009-12-01 07:46:00</td>\n",
+              "      <td>2.55</td>\n",
+              "      <td>13085</td>\n",
+              "      <td>United Kingdom</td>\n",
+              "      <td>False</td>\n",
+              "      <td>30.6</td>\n",
+              "      <td>2009</td>\n",
+              "      <td>12</td>\n",
+              "      <td>December</td>\n",
+              "      <td>2009-12</td>\n",
+              "      <td>1</td>\n",
+              "      <td>Tuesday</td>\n",
+              "      <td>7</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>9</th>\n",
+              "      <td>489435</td>\n",
+              "      <td>22349</td>\n",
+              "      <td>DOG BOWL , CHASING BALL DESIGN</td>\n",
+              "      <td>12</td>\n",
+              "      <td>2009-12-01 07:46:00</td>\n",
+              "      <td>3.75</td>\n",
+              "      <td>13085</td>\n",
+              "      <td>United Kingdom</td>\n",
+              "      <td>False</td>\n",
+              "      <td>45.0</td>\n",
+              "      <td>2009</td>\n",
+              "      <td>12</td>\n",
+              "      <td>December</td>\n",
+              "      <td>2009-12</td>\n",
+              "      <td>1</td>\n",
+              "      <td>Tuesday</td>\n",
+              "      <td>7</td>\n",
+              "    </tr>\n",
+              "  </tbody>\n",
+              "</table>\n",
+              "</div>\n",
+              "    <div class=\"colab-df-buttons\">\n",
+              "\n",
+              "  <div class=\"colab-df-container\">\n",
+              "    <button class=\"colab-df-convert\" onclick=\"convertToInteractive('df-e5dd5fc7-6092-455f-be52-7dd4303d9355')\"\n",
+              "            title=\"Convert this dataframe to an interactive table.\"\n",
+              "            style=\"display:none;\">\n",
+              "\n",
+              "  <svg xmlns=\"http://www.w3.org/2000/svg\" height=\"24px\" viewBox=\"0 -960 960 960\">\n",
+              "    <path d=\"M120-120v-720h720v720H120Zm60-500h600v-160H180v160Zm220 220h160v-160H400v160Zm0 220h160v-160H400v160ZM180-400h160v-160H180v160Zm440 0h160v-160H620v160ZM180-180h160v-160H180v160Zm440 0h160v-160H620v160Z\"/>\n",
+              "  </svg>\n",
+              "    </button>\n",
+              "\n",
+              "  <style>\n",
+              "    .colab-df-container {\n",
+              "      display:flex;\n",
+              "      gap: 12px;\n",
+              "    }\n",
+              "\n",
+              "    .colab-df-convert {\n",
+              "      background-color: #E8F0FE;\n",
+              "      border: none;\n",
+              "      border-radius: 50%;\n",
+              "      cursor: pointer;\n",
+              "      display: none;\n",
+              "      fill: #1967D2;\n",
+              "      height: 32px;\n",
+              "      padding: 0 0 0 0;\n",
+              "      width: 32px;\n",
+              "    }\n",
+              "\n",
+              "    .colab-df-convert:hover {\n",
+              "      background-color: #E2EBFA;\n",
+              "      box-shadow: 0px 1px 2px rgba(60, 64, 67, 0.3), 0px 1px 3px 1px rgba(60, 64, 67, 0.15);\n",
+              "      fill: #174EA6;\n",
+              "    }\n",
+              "\n",
+              "    .colab-df-buttons div {\n",
+              "      margin-bottom: 4px;\n",
+              "    }\n",
+              "\n",
+              "    [theme=dark] .colab-df-convert {\n",
+              "      background-color: #3B4455;\n",
+              "      fill: #D2E3FC;\n",
+              "    }\n",
+              "\n",
+              "    [theme=dark] .colab-df-convert:hover {\n",
+              "      background-color: #434B5C;\n",
+              "      box-shadow: 0px 1px 3px 1px rgba(0, 0, 0, 0.15);\n",
+              "      filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.3));\n",
+              "      fill: #FFFFFF;\n",
+              "    }\n",
+              "  </style>\n",
+              "\n",
+              "    <script>\n",
+              "      const buttonEl =\n",
+              "        document.querySelector('#df-e5dd5fc7-6092-455f-be52-7dd4303d9355 button.colab-df-convert');\n",
+              "      buttonEl.style.display =\n",
+              "        google.colab.kernel.accessAllowed ? 'block' : 'none';\n",
+              "\n",
+              "      async function convertToInteractive(key) {\n",
+              "        const element = document.querySelector('#df-e5dd5fc7-6092-455f-be52-7dd4303d9355');\n",
+              "        const dataTable =\n",
+              "          await google.colab.kernel.invokeFunction('convertToInteractive',\n",
+              "                                                    [key], {});\n",
+              "        if (!dataTable) return;\n",
+              "\n",
+              "        const docLinkHtml = 'Like what you see? Visit the ' +\n",
+              "          '<a target=\"_blank\" href=https://colab.research.google.com/notebooks/data_table.ipynb>data table notebook</a>'\n",
+              "          + ' to learn more about interactive tables.';\n",
+              "        element.innerHTML = '';\n",
+              "        dataTable['output_type'] = 'display_data';\n",
+              "        await google.colab.output.renderOutput(dataTable, element);\n",
+              "        const docLink = document.createElement('div');\n",
+              "        docLink.innerHTML = docLinkHtml;\n",
+              "        element.appendChild(docLink);\n",
+              "      }\n",
+              "    </script>\n",
+              "  </div>\n",
+              "\n",
+              "\n",
+              "    </div>\n",
+              "  </div>\n"
+            ],
+            "application/vnd.google.colaboratory.intrinsic+json": {
+              "type": "dataframe",
+              "variable_name": "sales_df"
+            }
+          },
+          "metadata": {},
+          "execution_count": 122
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# --------------------------------------------------\n",
+        "# 13. Save cleaned datasets\n",
+        "# --------------------------------------------------\n",
+        "\n",
+        "# Re-create cancelled_df to ensure it's defined\n",
+        "cancelled_df = cleaned_df[\n",
+        "    cleaned_df[\"Is_Cancelled\"] == True\n",
+        "].copy()\n",
+        "\n",
+        "sales_df.to_csv(\n",
+        "    \"online_retail_cleaned_sales.csv\",\n",
+        "    index=False\n",
+        ")\n",
+        "\n",
+        "cancelled_df.to_csv(\n",
+        "    \"online_retail_cancelled_transactions.csv\",\n",
+        "    index=False\n",
+        ")\n",
+        "\n",
+        "print(\"Files saved successfully.\")"
+      ],
+      "metadata": {
+        "id": "VkQN8t0CU23y",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "f8332fdb-ccba-4d98-c6f2-a98e75635c0c"
+      },
+      "execution_count": 123,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Files saved successfully.\n"
+          ]
+        }
+      ]
+    }
+  ]
+}
