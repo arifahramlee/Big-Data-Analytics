@@ -122,8 +122,3 @@ The notebooks were developed using **Google Colab**.
 2. Make the Online Retail II dataset available to the notebook.
 3. Update the dataset file path if necessary.
 4. Run the notebook cells sequentially.
-
-## Authors
-
-IST3134 Big Data Analytics in the Cloud
-Group Assignment – May Semester 2026
